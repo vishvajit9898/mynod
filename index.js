@@ -27,9 +27,9 @@ const apiHash = "db4d41372e1584d2ac372c1edad31e9a";
 
 app.post("/sendCode", async (req, res) => {
     const stringSession = new StringSession(""); // fill this later with the value from session.save()
-const client = new TelegramClient(stringSession, apiId, apiHash, {
-    connectionRetries: 5,
-});
+    const client = new TelegramClient(stringSession, apiId, apiHash, {
+        connectionRetries: 5,
+    });
     await client.connect();
     const { phonenumber } = req.body;
     try {
@@ -40,7 +40,7 @@ const client = new TelegramClient(stringSession, apiId, apiHash, {
             settings: new Api.CodeSettings(),
         }));
         const sessionStringn = await client.session.save();
-        res.status(200).json({ status: 'ok', result,sessionStringn });
+        res.status(200).json({ status: 'ok', result, sessionStringn });
     } catch (error) {
         console.error('Send code error:', error);
         res.status(500).json({ status: 'error', error: error.message });
@@ -48,20 +48,25 @@ const client = new TelegramClient(stringSession, apiId, apiHash, {
 })
 
 app.post("/verifyCode", async (req, res) => {
-    const { code, phonenumber, phoneCodeHash,str } = req.body;
+    const { code, phonenumber, phoneCodeHash, str } = req.body;
 
     const stringSession = new StringSession(str); // fill this later with the value from session.save()
     const client = new TelegramClient(stringSession, apiId, apiHash, {
         connectionRetries: 5,
     });
     await client.connect();
-    const responce = await client.invoke(new Api.auth.SignIn({
-        phoneNumber: phonenumber,
-        phoneCodeHash: phoneCodeHash,
-        phoneCode: code,
-    }));
-    const sessionStringn = await client.session.save();
-    res.status(200).json({ status: 'ok', result: responce, sessionStringn });
+    try {
+        const responce = await client.invoke(new Api.auth.SignIn({
+            phoneNumber: phonenumber,
+            phoneCodeHash: phoneCodeHash,
+            phoneCode: code,
+        }));
+        const sessionStringn = await client.session.save();
+        res.status(200).json({ status: 'ok', result: responce, sessionStringn });
+    } catch (error) {
+        console.error('Send code error:', error);
+        res.status(500).json({ status: 'error', error: error.message });
+    }
 })
 
 app.post("/createChannel", async (req, res) => {
@@ -157,7 +162,7 @@ app.post("/addExistingChannel", async (req, res) => {
 })
 
 app.post("/getUserChannels", async (req, res) => {
-    const { sessionString } = req.body;
+    const { sessionString, offsetDate } = req.body;
     const stringSession = new StringSession(sessionString); // fill this later with the value from session.save()
     const client = new TelegramClient(stringSession, apiId, apiHash, {
         connectionRetries: 5,
@@ -165,25 +170,33 @@ app.post("/getUserChannels", async (req, res) => {
     try {
         await client.connect();
 
-       
 
 
         const inputPeerSelf = new Api.InputPeerSelf();
         const channelsResponse = await client.invoke(new Api.messages.GetDialogs({
-            limit: 100,
-            excludePinned: true,
-            offsetDate: 0,
-            offsetId: 0,
+            limit: 30,
+            excludePinned: false,
+            offsetDate: offsetDate,
             offsetPeer: inputPeerSelf,
         }));
 
 
-        const creatorChannels = channelsResponse['chats'].filter(channel => channel.creator === true);
+        // const creatorChannels = channelsResponse['chats'].filter(channel => channel.creator === true);
+        const creatorChannels = channelsResponse['chats'].filter(channel => channel.creator === true && channel.broadcast===true);
+        const lastChannel = channelsResponse['chats'][0];
+        let offse = 0; // Default offset date value
 
+
+        if (channelsResponse['chats'].length > 0) {
+            const lastChannel = channelsResponse['chats'][0];
+            offse = lastChannel.date;
+        }
         res.status(200).json({
             status: 'ok',
             channels: creatorChannels,
+            ofid: offse,
         });
+        await client.disconnect();
     } catch (error) {
         console.error('Get user channels error:', error);
         res.status(500).json({ status: 'error', error: error.message });
@@ -193,8 +206,8 @@ app.post("/getUserChannels", async (req, res) => {
 app.post("/getPrivateChannelInfo", async (req, res) => {
     const { channelId, accessHash, sessionString } = req.body;
     try {
-        const stringSession = new StringSession(sessionString); 
-        const client = new TelegramClient(stringSession , apiId, apiHash, {
+        const stringSession = new StringSession(sessionString);
+        const client = new TelegramClient(stringSession, apiId, apiHash, {
             connectionRetries: 5,
         });
         await client.connect();
@@ -210,6 +223,7 @@ app.post("/getPrivateChannelInfo", async (req, res) => {
             status: 'ok',
             channelInfo: channelInfo,
         });
+        await client.disconnect();
     } catch (error) {
         console.error('Get private channel info error:', error);
         res.status(500).json({ status: 'error', error: error.message });
@@ -218,8 +232,8 @@ app.post("/getPrivateChannelInfo", async (req, res) => {
 
 app.post("/generateChannelInviteLink", async (req, res) => {
     const { sessionString, channelId } = req.body;
-    const stringSession = new StringSession(sessionString); 
-    const client = new TelegramClient(stringSession , apiId, apiHash, {
+    const stringSession = new StringSession(sessionString);
+    const client = new TelegramClient(stringSession, apiId, apiHash, {
         connectionRetries: 5,
     });
     try {
