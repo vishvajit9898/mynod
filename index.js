@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-    origin: ["http://localhost:3000","http://localhost:5173","https://dailynationnews.in","https://4cbf-2401-4900-8fc6-4409-e47b-2159-4df1-165f.ngrok-free.app"],
+    origin: ["http://localhost:3000","http://localhost:5173","https://dailynationnews.in","https://f821-2401-4900-8fc6-4409-e47b-2159-4df1-165f.ngrok-free.app"],
     credentials: true,
     methods: ["GET", "POST"]
 }))
